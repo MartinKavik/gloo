@@ -1,8 +1,8 @@
 //! Callback-style timer APIs.
 
-use super::sys::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use web_sys;
 
 /// A scheduled timeout.
 ///
@@ -20,7 +20,7 @@ pub struct Timeout {
 impl Drop for Timeout {
     fn drop(&mut self) {
         if let Some(id) = self.id {
-            clear_timeout(id);
+            web_sys::window().expect("cannot use `window`").clear_timeout_with_handle(id);
         }
     }
 }
@@ -44,10 +44,10 @@ impl Timeout {
     {
         let closure = Closure::once(callback);
 
-        let id = set_timeout(
+        let id =  web_sys::window().expect("cannot use `window`").set_timeout_with_callback_and_timeout_and_arguments_0(
             closure.as_ref().unchecked_ref::<js_sys::Function>(),
             millis as i32,
-        );
+        ).expect("`set_timeout` failed");
 
         Timeout {
             id: Some(id),
@@ -118,7 +118,7 @@ pub struct Interval {
 impl Drop for Interval {
     fn drop(&mut self) {
         if let Some(id) = self.id {
-            clear_interval(id);
+            web_sys::window().expect("cannot use `window`").clear_timeout_with_handle(id);
         }
     }
 }
@@ -141,10 +141,10 @@ impl Interval {
     {
         let closure = Closure::wrap(Box::new(callback) as Box<dyn FnMut()>);
 
-        let id = set_interval(
+        let id =  web_sys::window().expect("cannot use `window`").set_interval_with_callback_and_timeout_and_arguments_0(
             closure.as_ref().unchecked_ref::<js_sys::Function>(),
             millis as i32,
-        );
+        ).expect("`set_interval` failed");
 
         Interval {
             id: Some(id),

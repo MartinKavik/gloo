@@ -1,11 +1,11 @@
 //! `Future`- and `Stream`-backed timers APIs.
 
-use super::sys::*;
 use futures::prelude::*;
 use futures::sync::mpsc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
+use web_sys;
 
 /// A scheduled timeout as a `Future`.
 ///
@@ -56,7 +56,7 @@ pub struct TimeoutFuture {
 impl Drop for TimeoutFuture {
     fn drop(&mut self) {
         if let Some(id) = self.id {
-            clear_timeout(id);
+            web_sys::window().expect("cannot use `window`").clear_timeout_with_handle(id);
         }
     }
 }
@@ -84,7 +84,7 @@ impl TimeoutFuture {
     pub fn new(millis: u32) -> TimeoutFuture {
         let mut id = None;
         let promise = js_sys::Promise::new(&mut |resolve, _reject| {
-            id = Some(set_timeout(&resolve, millis as i32));
+            id = Some( web_sys::window().expect("cannot use `window`").set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, millis as i32).expect("`set_timeout` failed"));
         });
         debug_assert!(id.is_some());
         let inner = JsFuture::from(promise);
@@ -162,7 +162,7 @@ impl IntervalStream {
 impl Drop for IntervalStream {
     fn drop(&mut self) {
         if let Some(id) = self.id {
-            clear_interval(id);
+            web_sys::window().expect("cannot use `window`").clear_timeout_with_handle(id);
         }
     }
 }
@@ -173,10 +173,10 @@ impl Stream for IntervalStream {
 
     fn poll(&mut self) -> Poll<Option<()>, ()> {
         if self.id.is_none() {
-            self.id = Some(set_interval(
+            self.id = Some( web_sys::window().expect("cannot use `window`").set_interval_with_callback_and_timeout_and_arguments_0(
                 self.closure.as_ref().unchecked_ref::<js_sys::Function>(),
                 self.millis as i32,
-            ));
+            ).expect("`set_interval` failed"));
         }
 
         self.inner.poll()

@@ -71,5 +71,3 @@ pub mod callback;
 
 #[cfg(feature = "futures")]
 pub mod future;
-
-mod sys;
